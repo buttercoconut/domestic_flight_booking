@@ -1,46 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List
+from ..models.models import Flight, BookingRequest, BookingResponse
+from ..services.booking_service import reserve_flight
 
-from ..dependencies.database import get_db
-from ..models import models as db_models
-from ..models import models as schemas
+router = APIRouter()
 
-router = APIRouter(prefix="/flights", tags=["flights"])
+# Mock flight data
+FLIGHTS = [
+    Flight(
+        flight_number="KE123",
+        departure_airport="ICN",
+        arrival_airport="GMP",
+        departure_time="2024-07-01T08:00:00Z",
+        price=120000.0,
+    ),
+    Flight(
+        flight_number="KE456",
+        departure_airport="ICN",
+        arrival_airport="GMP",
+        departure_time="2024-07-01T12:00:00Z",
+        price=110000.0,
+    ),
+]
 
-@router.get("/search", response_model=schemas.FlightListResponse)
-def search_flights(query: schemas.FlightSearchQuery, db: Session = Depends(get_db)):
-    # Simplified: return all flights matching departure/arrival and date
-    flights = db.query(db_models.Flight).filter(
-        db_models.Flight.departure_airport == query.departure_airport,
-        db_models.Flight.arrival_airport == query.arrival_airport,
-        db_models.Flight.departure_time.cast(db_models.Flight.departure_time.type).date() == query.date.date()
-    ).all()
-    results = []
-    for f in flights:
-        results.append(schemas.FlightSearchResult(flight=f, seats_available=f.seats_available))
-    return schemas.FlightListResponse(flights=results)
+@router.get("/search", response_model=List[Flight])
+def search_flights(departure: str, arrival: str, date: str):
+    # Simple filter logic
+    return [f for f in FLIGHTS if f.departure_airport == departure and f.arrival_airport == arrival]
 
-@router.post("/reserve", response_model=schemas.Booking)
-def reserve_flight(booking: schemas.BookingCreate, db: Session = Depends(get_db)):
-    # Core logic: reserve seat and create booking
-    flight = db.query(db_models.Flight).filter(db_models.Flight.id == booking.flight_id).first()
-    if not flight:
-        raise HTTPException(status_code=404, detail="Flight not found")
-    if flight.seats_available <= 0:
-        raise HTTPException(status_code=400, detail="No seats available")
-    # Decrement seat count
-    flight.seats_available -= 1
-    db.add(flight)
-    new_booking = db_models.Booking(
-        user_id=booking.user_id,
-        flight_id=booking.flight_id,
-        seat_number=booking.seat_number,
-        passenger_name=booking.passenger_name,
-        passenger_email=booking.passenger_email,
-        status="PENDING",
-    )
-    db.add(new_booking)
-    db.commit()
-    db.refresh(new_booking)
-    return new_booking
+@router.post("/reserve", response_model=BookingResponse)
+def reserve(request: BookingRequest):
+    try:
+        return reserve_flight(request)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
