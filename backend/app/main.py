@@ -1,8 +1,13 @@
 from fastapi import FastAPI
-from .routes import flights
+from .routes import booking as booking_router
+from .routes import payment as payment_router
 
 app = FastAPI(title="Domestic Flight Booking API")
 
-app.include_router(flights.router, prefix="/flights", tags=["flights"])
+app.include_router(booking_router.router)
+app.include_router(payment_router.router)
 
-# Future routers: bookings, payments, users
+# Health check
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
