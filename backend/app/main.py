@@ -1,13 +1,12 @@
 from fastapi import FastAPI
-from .routes import booking as booking_router
-from .routes import payment as payment_router
+from .routes import flight, booking, payment
 
 app = FastAPI(title="Domestic Flight Booking API")
 
-app.include_router(booking_router.router)
-app.include_router(payment_router.router)
+app.include_router(flight.router)
+app.include_router(booking.router)
+app.include_router(payment.router)
 
-# Health check
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the Domestic Flight Booking API"}

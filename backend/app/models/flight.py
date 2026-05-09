@@ -1,36 +1,33 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import datetime
 
 class Flight(BaseModel):
-    flight_number: str = Field(..., description="항공편 번호")
-    departure_airport: str = Field(..., description="출발 공항 코드")
-    arrival_airport: str = Field(..., description="도착 공항 코드")
-    departure_time: datetime = Field(..., description="출발 시각")
-    price: float = Field(..., description="항공권 가격")
+    flight_number: str
+    departure_airport: str
+    arrival_airport: str
+    departure_time: datetime
+    price: float
 
-class BookingRequest(BaseModel):
+class User(BaseModel):
+    id: int
+    username: str
+    email: str
+    hashed_password: str
+
+class Seat(BaseModel):
+    seat_number: str
+    is_available: bool
+
+class Booking(BaseModel):
+    id: int
     user_id: int
     flight_id: int
     seat_number: str
-    passenger_name: str
-    passenger_id: str
+    booking_time: datetime
 
-class BookingResponse(BaseModel):
-    booking_id: int
-    status: str
-    flight: Flight
-    seat_number: str
-    passenger_name: str
-    passenger_id: str
-    created_at: datetime
-
-class PaymentRequest(BaseModel):
+class Payment(BaseModel):
+    id: int
     booking_id: int
     amount: float
-    payment_method: str
-
-class PaymentResponse(BaseModel):
-    payment_id: int
     status: str
-    transaction_id: str
-    created_at: datetime
+    paid_at: datetime | None = None
