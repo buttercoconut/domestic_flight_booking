@@ -1,33 +1,41 @@
+# models/flight.py
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean
+from . import Base
+
+class Flight(Base):
+    __tablename__ = "flights"
+
+    id = Column(Integer, primary_key=True, index=True)
+    flight_number = Column(String, unique=True, index=True, nullable=False)
+    origin = Column(String, nullable=False)
+    destination = Column(String, nullable=False)
+    departure_time = Column(DateTime, nullable=False)
+    arrival_time = Column(DateTime, nullable=False)
+    total_seats = Column(Integer, nullable=False)
+    available_seats = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+# Pydantic schemas
 from pydantic import BaseModel
 from datetime import datetime
 
-class Flight(BaseModel):
+class FlightBase(BaseModel):
     flight_number: str
-    departure_airport: str
-    arrival_airport: str
+    origin: str
+    destination: str
     departure_time: datetime
+    arrival_time: datetime
+    total_seats: int
     price: float
 
-class User(BaseModel):
-    id: int
-    username: str
-    email: str
-    hashed_password: str
+class FlightCreate(FlightBase):
+    available_seats: int
 
-class Seat(BaseModel):
-    seat_number: str
-    is_available: bool
-
-class Booking(BaseModel):
+class FlightRead(FlightBase):
     id: int
-    user_id: int
-    flight_id: int
-    seat_number: str
-    booking_time: datetime
+    available_seats: int
+    is_active: bool
 
-class Payment(BaseModel):
-    id: int
-    booking_id: int
-    amount: float
-    status: str
-    paid_at: datetime | None = None
+    class Config:
+        orm_mode = True

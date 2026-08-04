@@ -1,18 +1,20 @@
-from datetime import datetime
-from ..models.payment import PaymentRequest, PaymentResponse
+# services/payment_service.py
 from sqlalchemy.orm import Session
+from ..models.payment import Payment, PaymentCreate, PaymentRead
+from datetime import datetime
 
-_payment_counter = 1
+# Process payment (placeholder)
 
-
-def process_payment(db: Session, request: PaymentRequest) -> PaymentResponse:
-    global _payment_counter
-    payment_id = _payment_counter
-    _payment_counter += 1
-    response = PaymentResponse(
-        payment_id=payment_id,
-        status="completed",
-        transaction_id=f"TXN{payment_id:06d}",
-        created_at=datetime.utcnow(),
+def process_payment(db: Session, payment: PaymentCreate):
+    # In real scenario, integrate with payment gateway
+    payment_record = Payment(
+        booking_id=payment.booking_id,
+        amount=payment.amount,
+        payment_time=datetime.utcnow(),
+        payment_method=payment.payment_method,
+        status="completed"
     )
-    return response
+    db.add(payment_record)
+    db.commit()
+    db.refresh(payment_record)
+    return payment_record

@@ -1,35 +1,39 @@
-from datetime import datetime
-from ..models.flight import Flight, BookingRequest, BookingResponse
+# services/booking_service.py
 from sqlalchemy.orm import Session
+from ..models.booking import Booking, BookingCreate, BookingRead
+from ..models.flight import Flight
+from datetime import datetime
 
-# In-memory storage for demo purposes
-_flights = {
-    1: Flight(
-        flight_number="SK123",
-        departure_airport="ICN",
-        arrival_airport="GMP",
-        departure_time=datetime(2024, 10, 1, 9, 0),
-        price=150.0,
-    ),
-}
-_booking_counter = 1
+# Reserve a flight seat
 
-
-def reserve_flight(db: Session, request: BookingRequest) -> BookingResponse:
-    # Simulate flight lookup
-    flight = _flights.get(request.flight_id)
+def reserve_flight(db: Session, user_id: int, flight_id: int, seat_number: str):
+    # Check flight exists and has available seats
+    flight = db.query(Flight).filter(Flight.id == flight_id, Flight.is_active == True).first()
     if not flight:
-        raise ValueError("Flight not found")
-    # Simulate seat reservation logic
-    booking_id = _booking_counter
-    _booking_counter += 1
-    response = BookingResponse(
-        booking_id=booking_id,
-        status="confirmed",
-        flight=flight,
-        seat_number=request.seat_number,
-        passenger_name=request.passenger_name,
-        passenger_id=request.passenger_id,
-        created_at=datetime.utcnow(),
+        raise ValueError("Flight not found or inactive")
+    if flight.available_seats <= 0:
+        raise ValueError("No seats available")
+    # Check seat number is not already taken
+    existing = db.query(Booking).filter(Booking.flight_id == flight_id, Booking.seat_number == seat_number).first()
+    if existing:
+        raise ValueError("Seat already booked")
+    # Create booking
+    booking = Booking(
+        user_id=user_id,
+        flight_id=flight_id,
+        seat_number=seat_number,
+        booking_time=datetime.utcnow(),
+        total_price=flight.price,
+        status="confirmed"
     )
-    return response
+    db.add(booking)
+    # Decrement available seats
+    flight.available_seats -= 1
+    db.commit()
+    db.refresh(booking)
+    return booking
+
+# Get bookings for a user
+
+def get_user_bookings(db: Session, user_id: int, skip: int = 0, limit: int = 10):
+    return db.query(Booking).filter(Booking.user_id == user_id).offset(skip).limit(limit).all()
